@@ -1,6 +1,6 @@
 import React from 'react'
 
 import { storiesOf } from '@storybook/react'
-import Demo from '../src/index'
+import Demo1 from './demo1'
 
-storiesOf('Demo', module).add('base', () => <Demo />)
+storiesOf('Demo', module).add('demo1', () => <Demo1 />)
