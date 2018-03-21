@@ -4,7 +4,7 @@ import './index.less'
 
 class VirtualList extends Component {
   static propTypes = {
-    itemHeight: PropTypes.number, // 每个条目的高度
+    getItemHeight: PropTypes.func, // (data:any, index: number): number
     data: PropTypes.array
   }
 
@@ -14,21 +14,61 @@ class VirtualList extends Component {
     super(props)
 
     this.state = {
-      contentHeight: props.itemHeight * props.data.length,
+      contentHeight: this.getContentHeight(),
       viewData: [],
       start: 0
     }
   }
 
+  getContentHeight() {
+    const { data, getItemHeight } = this.props
+
+    let total = 0
+    data.forEach((e, i) => {
+      total += getItemHeight(e, i)
+    })
+
+    return total
+  }
+
+  /**
+   * 获取index距离最顶部的距离(不含自身)
+   * @param {Number} index
+   * @return {Number}
+   */
+  getItemOffset(index) {
+    const { data, getItemHeight } = this.props
+
+    let total = 0
+    for (let i = 0; i < index; i++) {
+      total += getItemHeight(data[i], i)
+    }
+
+    return total
+  }
+
+  /**
+   * 查找距离top最近的索引值，换句话说，到index的距离(包含index在内) >= top
+   */
+  findNearestItemIndex(top) {
+    const { data, getItemHeight } = this.props
+    const len = data.length
+    let total = 0
+    for (let i = 0; i < len; i++) {
+      total += getItemHeight(data[i], i)
+      if (total >= top) return i
+    }
+
+    return len - 1
+  }
+
   scrollHandler = () => {
     const viewHeight = this.container.clientHeight
     const scrollTop = this.container.scrollTop
-    const { itemHeight, data } = this.props
 
-    const viewCount = Math.ceil(viewHeight / itemHeight) // 视口展示的数据条目数量
-    const start = Math.floor(scrollTop / itemHeight)
-    const end = start + viewCount
-    const viewData = data.slice(start, end + 1)
+    const start = this.findNearestItemIndex(scrollTop)
+    const end = this.findNearestItemIndex(scrollTop + viewHeight)
+    const viewData = this.props.data.slice(start, end + 1)
 
     this.setState({
       viewData,
@@ -43,8 +83,8 @@ class VirtualList extends Component {
 
   render() {
     const { contentHeight, viewData, start } = this.state
-    const { itemHeight } = this.props
-    const pTop = itemHeight * start
+    const { getItemHeight } = this.props
+    const pTop = this.getItemOffset(start)
     return (
       <div
         className="virtual-list"
@@ -73,7 +113,7 @@ class VirtualList extends Component {
                 key={index}
                 className="virtual-list_content-item"
                 style={{
-                  height: itemHeight
+                  height: getItemHeight(itemData, start + index) + 'px'
                 }}
               >
                 {itemData}
